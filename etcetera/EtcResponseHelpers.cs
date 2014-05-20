@@ -7,17 +7,17 @@
     {
         public static int EtcIndex(this IRestResponse response)
         {
-            return (int) response.Headers.First(x => x.Name == "X-Etcd-Index").Value;
+            return int.Parse(response.Headers.First(x => x.Name == "X-Etcd-Index").Value.ToString());
         }
 
         public static int EtcRaftIndex(this IRestResponse response)
         {
-            return (int) response.Headers.First(x => x.Name == "X-Raft-Index").Value;
+            return int.Parse(response.Headers.First(x => x.Name == "X-Raft-Index").Value.ToString()); ;
         }
 
         public static int EtcRaftTerm(this IRestResponse response)
         {
-            return (int) response.Headers.First(x => x.Name == "X-Raft-Term").Value;
+            return int.Parse(response.Headers.First(x => x.Name == "X-Raft-Term").Value.ToString()); ;
         }
     }
 }

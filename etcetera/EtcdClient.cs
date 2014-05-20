@@ -197,6 +197,8 @@
             if (action != null) action(request);
 
             var response = _client.Execute<EtcdResponse>(request);
+
+            response.Data.Index = EtcResponseHelpers.EtcIndex(response);       
             return response.Data;
         }
 
