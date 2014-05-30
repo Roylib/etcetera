@@ -185,7 +185,7 @@
                 getRequest.AddParameter("waitIndex", waitIndex);
             }
 
-            _client.ExecuteAsync<EtcdResponse>(getRequest, r =>followUp(r == null ? null : r.Data));
+            _client.ExecuteAsync<EtcdResponse>(getRequest, r =>followUp(r == null ? null : BuildWatch(r)));
         }
 
         EtcdResponse makeKeyRequest(string key, Method method, Action<IRestRequest> action = null)
@@ -201,6 +201,12 @@
             if (response.Data != null)
                 response.Data.Index = EtcResponseHelpers.EtcIndex(response);       
             return response.Data;
+        }
+
+        EtcdResponse BuildWatch(IRestResponse<EtcdResponse> resp)
+        {
+            resp.Data.Index = EtcResponseHelpers.EtcIndex(resp);
+            return resp.Data;
         }
 
         public IEtcdStatisticsModule Statistics { get; private set; }

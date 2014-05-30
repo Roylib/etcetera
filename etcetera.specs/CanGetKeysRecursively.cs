@@ -13,6 +13,7 @@
             Client.Set(ADirectory + "/" +AKey, "wassup");
             Client.Set(ADirectory + "/" +AKey + "-2", "not-much");
             _getResponse = Client.Get(ADirectory, recursive:true);
+            //_getResponse = Client.Get("/", true);
         }
 
         [Fact]
