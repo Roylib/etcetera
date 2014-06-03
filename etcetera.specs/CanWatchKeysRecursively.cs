@@ -67,6 +67,8 @@ namespace etcetera.specs
 //
 //            Client.Set("bob/" + AKey, "nopenopenope");
 
+//            Client.Delete("bob/" + AKey);
+
 
             var ResponseAfterChange = Client.Get("/", true);
 

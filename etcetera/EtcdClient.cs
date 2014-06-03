@@ -205,6 +205,7 @@
 
         EtcdResponse BuildWatch(IRestResponse<EtcdResponse> resp)
         {
+            if (resp.Data == null) return null;
             resp.Data.Index = EtcResponseHelpers.EtcIndex(resp);
             return resp.Data;
         }
