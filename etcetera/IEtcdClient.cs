@@ -1,6 +1,7 @@
 ﻿namespace etcetera
 {
     using System;
+    using System.Security.Cryptography.X509Certificates;
 
     public interface IEtcdClient
     {
@@ -16,7 +17,7 @@
         /// <param name="prevValue">Used to compare and swap on value</param>
         /// <param name="prevIndex">Used to compare and swap on index</param>
         /// <returns></returns>
-        EtcdResponse Set(string key, string value, int ttl = 0, bool prevExist = false, string prevValue = null,
+        EtcdResponse Set(string key, string value, int ttl = 0, bool? prevExist = null, string prevValue = null,
             int? prevIndex = null);
 
 
@@ -78,5 +79,9 @@
 
         IEtcdStatisticsModule Statistics { get; }
 
+<<<<<<< HEAD
+=======
+        X509CertificateCollection ClientCertificates { get; set; }
+>>>>>>> drucell/master
     }
 }

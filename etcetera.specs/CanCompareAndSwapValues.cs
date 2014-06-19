@@ -6,15 +6,28 @@ namespace etcetera.specs
     public class CanCompareAndSwapValues : EtcdBase
     {
         [Fact]
-        public void SupportsPreviousExist()
+        public void ErrorsIfPreviousKeyIsPresent()
         {
             Client.Set(AKey, "one");
             var rep2 = Client.Set(AKey, "three", prevExist:false);
+
 
             rep2.ErrorCode.ShouldEqual(105);
             rep2.Cause.ShouldEqual("/"+AKey);
             rep2.Index.ShouldBeGreaterThan(0);
             rep2.Message.ShouldEqual("Key already exists");
+        }
+
+        [Fact]
+        public void ErrorsIfPreviousKeyIsNotPresent()
+        {
+            var rep = Client.Set(AKey, "three", prevExist: true);
+
+
+            rep.ErrorCode.ShouldEqual(100);
+            rep.Cause.ShouldEqual("/" + AKey);
+            rep.Index.ShouldBeGreaterThan(0);
+            rep.Message.ShouldEqual("Key not found");
         }
 
         [Fact]
@@ -41,7 +54,7 @@ namespace etcetera.specs
             var rep2 = Client.Set(AKey, "three", prevIndex: rep1.Node.CreatedIndex+1);
 
             rep2.ErrorCode.ShouldEqual(101);
-            rep2.Cause.ShouldEqual(string.Format("[ != {0}] [{1} != {2}]",  one, rep1.Node.CreatedIndex + 1, rep1.Node.CreatedIndex));
+            rep2.Cause.ShouldEqual(string.Format("[{0} != {1}]", rep1.Node.CreatedIndex + 1, rep1.Node.CreatedIndex));
             rep2.Index.ShouldBeGreaterThan(0);
             rep2.Message.ShouldEqual("Compare failed");
         }

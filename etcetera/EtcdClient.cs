@@ -1,7 +1,10 @@
 ﻿namespace etcetera
 {
     using System;
+    using System.Linq;
+    using System.Text;
     using RestSharp;
+    using System.Security.Cryptography.X509Certificates;
 
     public class EtcdClient : IEtcdClient
     {
@@ -33,26 +36,28 @@
         /// <param name="prevValue">Used to compare and swap on value</param>
         /// <param name="prevIndex">Used to compare and swap on index</param>
         /// <returns></returns>
-        public EtcdResponse Set(string key, string value, int ttl = 0, bool prevExist = false, string prevValue = null,
+        public EtcdResponse Set(string key, string value, int ttl = 0, bool? prevExist = null, string prevValue = null,
             int? prevIndex = null)
         {
             return makeKeyRequest(key, Method.PUT, req =>
             {
-                //needed due to issue 469 - https://github.com/coreos/etcd/issues/469
-                req.OnBeforeDeserialization = resp => { resp.ContentType = "application/json"; };
                 req.AddParameter("value", value);
                 if (ttl > 0)
                 {
                     req.AddParameter("ttl", ttl);
                 }
-                if (prevExist)
+
+                if (prevExist.HasValue)
                 {
-                    req.AddParameter("prevExist", "true");
+                    var val = prevExist.Value ? "true" : "false";
+                    req.AddParameter("prevExist", val);
                 }
+
                 if (prevValue != null)
                 {
                     req.AddParameter("prevValue", prevValue);
                 }
+
                 if (prevIndex.HasValue)
                 {
                     req.AddParameter("prevIndex", prevIndex.Value);
@@ -95,9 +100,6 @@
         {
             return makeKeyRequest(key, Method.GET, req =>
             {
-                //needed due to issue 469 - https://github.com/coreos/etcd/issues/469
-                req.OnBeforeDeserialization = resp => { resp.ContentType = "application/json"; };
-
                 req.AddParameter("recursive", recursive.ToString().ToLower());
                 req.AddParameter("sorted", sorted.ToString().ToLower());
                 req.AddParameter("consistent", sorted.ToString().ToLower());
@@ -127,9 +129,6 @@
         {
             return makeKeyRequest(key, Method.DELETE, req =>
             {
-                //needed due to issue 469 - https://github.com/coreos/etcd/issues/469
-                req.OnBeforeDeserialization = resp => { resp.ContentType = "application/json"; };
-
                 if (prevValue != null)
                 {
                     req.AddParameter("prevValue", prevValue);
@@ -185,7 +184,11 @@
                 getRequest.AddParameter("waitIndex", waitIndex);
             }
 
+<<<<<<< HEAD
             _client.ExecuteAsync<EtcdResponse>(getRequest, r =>followUp(r == null ? null : BuildWatch(r)));
+=======
+            _client.ExecuteAsync<EtcdResponse>(getRequest, r => followUp(processRestResponse(r)));
+>>>>>>> drucell/master
         }
 
         EtcdResponse makeKeyRequest(string key, Method method, Action<IRestRequest> action = null)
@@ -193,14 +196,62 @@
             var requestUrl = _keysRoot.AppendPath(key);
             var request = new RestRequest(requestUrl, method);
 
-
             if (action != null) action(request);
+
+
+            //needed due to issue 469 - https://github.com/coreos/etcd/issues/469
+            request.OnBeforeDeserialization = resp => { resp.ContentType = "application/json"; };
 
             var response = _client.Execute<EtcdResponse>(request);
 
+<<<<<<< HEAD
             if (response.Data != null)
                 response.Data.Index = EtcResponseHelpers.EtcIndex(response);       
             return response.Data;
+=======
+            if(checkForError(response)) throw constructException(response);
+            
+            var etcdResponse = processRestResponse(response);
+            
+            return etcdResponse;
+        }
+
+
+        static EtcdResponse processRestResponse(IRestResponse<EtcdResponse> response)
+        {
+            if (response == null) return null;
+
+            var etcdResponse = response.Data;
+            if (etcdResponse != null)
+            {
+                // While X-Raft-Index and X-Raft-Term have been noticed as missing (e.g., when Compare and Delete fails), X-Etcd-Index should always exist.
+                etcdResponse.Headers.EtcdIndex = int.Parse(response.Headers.First(h => h.Name.Equals("X-Etcd-Index")).Value.ToString());
+
+                var raftIndexHeader = response.Headers.FirstOrDefault(h => h.Name.Equals("X-Raft-Index"));
+                if (raftIndexHeader != null) etcdResponse.Headers.RaftIndex = int.Parse(raftIndexHeader.Value.ToString());
+
+                var raftTermHeader = response.Headers.FirstOrDefault(h => h.Name.Equals("X-Raft-Term"));
+                if (raftTermHeader != null) etcdResponse.Headers.RaftTerm = int.Parse(raftTermHeader.Value.ToString());
+            }
+
+            return etcdResponse;
+        }
+
+
+        static bool checkForError(IRestResponse<EtcdResponse> response)
+        {
+            return response.StatusCode == 0;
+        }
+
+         Exception constructException(IRestResponse<EtcdResponse> response)
+        {
+            var msg = new StringBuilder();
+            msg.AppendFormat("Server: '{0}'", _client.BaseUrl);
+            msg.AppendFormat("- Path: '{0}'", response.Request.Resource);
+            msg.AppendFormat("- Message: '{0}'", response.ErrorMessage);
+
+            return new EtceteraException(msg.ToString(), response.ErrorException);
+>>>>>>> drucell/master
         }
 
         EtcdResponse BuildWatch(IRestResponse<EtcdResponse> resp)
@@ -211,5 +262,17 @@
         }
 
         public IEtcdStatisticsModule Statistics { get; private set; }
+
+        public X509CertificateCollection ClientCertificates
+        {
+            get
+            {
+                return _client.ClientCertificates;
+            }
+            set
+            {
+                _client.ClientCertificates = value;
+            }
+        }
     }
 }
